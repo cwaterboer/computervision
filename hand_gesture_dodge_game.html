@@ -1,0 +1,767 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg-1: #0e1b2b;
+    --bg-2: #12263a;
+    --panel: rgba(7, 17, 27, 0.72);
+    --panel-border: rgba(160, 205, 255, 0.2);
+    --text-main: #e9f5ff;
+    --text-muted: #adc6dc;
+    --accent: #64ffd8;
+    --accent-alt: #ffc46b;
+    --danger: #ff6f73;
+    --radius: 18px;
+    --radius-sm: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    font-family: 'Space Grotesk', sans-serif;
+    color: var(--text-main);
+    background:
+      radial-gradient(circle at 12% 10%, rgba(107, 179, 255, 0.18), transparent 45%),
+      radial-gradient(circle at 90% 80%, rgba(100, 255, 216, 0.16), transparent 40%),
+      linear-gradient(135deg, var(--bg-1), var(--bg-2));
+    padding: 26px 16px;
+  }
+
+  #root {
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+
+  .app-shell {
+    display: grid;
+    grid-template-columns: 1.35fr 0.9fr;
+    gap: 18px;
+    align-items: start;
+  }
+
+  .panel {
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 18px 48px rgba(4, 10, 16, 0.45);
+    overflow: hidden;
+  }
+
+  #game-area {
+    position: relative;
+    width: 100%;
+  }
+
+  #canvas {
+    display: block;
+    width: 100%;
+    border-radius: var(--radius);
+    border: 1px solid rgba(145, 190, 238, 0.2);
+    background: #0b1220;
+  }
+
+  #video {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  #ui-overlay {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+    gap: 8px;
+  }
+
+  .pill {
+    font-family: 'IBM Plex Mono', monospace;
+    background: rgba(6, 16, 25, 0.6);
+    border: 1px solid rgba(155, 208, 255, 0.26);
+    border-radius: 999px;
+    padding: 5px 13px;
+    font-size: 12px;
+    color: #ebf7ff;
+    letter-spacing: 0.02em;
+  }
+
+  #status-bar {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  .status-pill {
+    background: rgba(5, 14, 22, 0.76);
+    border: 1px solid rgba(157, 214, 255, 0.24);
+    border-radius: 999px;
+    padding: 6px 16px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  #start-screen,
+  #over-screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    border-radius: var(--radius);
+    text-align: center;
+    background: linear-gradient(140deg, rgba(7, 17, 27, 0.93), rgba(10, 28, 43, 0.89));
+  }
+
+  #over-screen { display: none; }
+
+  .screen-title {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .screen-copy {
+    max-width: 320px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  .gesture-hint {
+    font-size: 12px;
+    color: rgba(178, 223, 255, 0.72);
+    letter-spacing: 0.02em;
+  }
+
+  .action-btn {
+    margin-top: 6px;
+    border: 1px solid rgba(156, 220, 255, 0.38);
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(82, 138, 255, 0.24), rgba(103, 255, 215, 0.2));
+    color: #ecf8ff;
+    font-weight: 600;
+    padding: 10px 28px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: transform 120ms ease, background 120ms ease;
+  }
+
+  .action-btn:hover {
+    transform: translateY(-1px);
+    background: linear-gradient(135deg, rgba(82, 138, 255, 0.32), rgba(103, 255, 215, 0.28));
+  }
+
+  #controller-panel {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .panel-head h3 {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .live-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .live-dot::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--danger);
+    box-shadow: 0 0 0 0 rgba(255, 111, 115, 0.6);
+    animation: pulse 1.6s infinite;
+  }
+
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 111, 115, 0.55); }
+    70% { box-shadow: 0 0 0 9px rgba(255, 111, 115, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 111, 115, 0); }
+  }
+
+  #monitor-wrap {
+    border: 1px solid rgba(154, 210, 255, 0.24);
+    border-radius: var(--radius-sm);
+    background: rgba(5, 12, 20, 0.7);
+    overflow: hidden;
+  }
+
+  #monitor {
+    width: 100%;
+    display: block;
+    aspect-ratio: 4 / 3;
+    background: #070d16;
+  }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .metric {
+    border: 1px solid rgba(152, 214, 255, 0.2);
+    border-radius: 12px;
+    background: rgba(5, 13, 20, 0.56);
+    padding: 10px;
+  }
+
+  .metric-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: #a8c4db;
+  }
+
+  .metric-value {
+    margin-top: 4px;
+    font-size: 17px;
+    font-weight: 600;
+    color: #f0fbff;
+  }
+
+  .quality-wrap {
+    margin-top: 3px;
+  }
+
+  .quality-bar {
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(164, 217, 255, 0.2);
+    overflow: hidden;
+  }
+
+  .quality-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--danger), var(--accent-alt), var(--accent));
+    transition: width 150ms linear;
+  }
+
+  .panel-note {
+    font-size: 12px;
+    color: #9bbad2;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 980px) {
+    .app-shell {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div id="root">
+  <div class="app-shell">
+    <section class="panel" id="game-area">
+      <video id="video" autoplay playsinline muted></video>
+      <canvas id="canvas"></canvas>
+      <div id="ui-overlay">
+        <div class="pill" id="score-el">SCORE 0000</div>
+        <div class="pill" id="hi-el">BEST 0000</div>
+      </div>
+      <div id="status-bar">
+        <div class="status-pill" id="status-el">Initializing camera...</div>
+      </div>
+      <div id="start-screen">
+        <h2 class="screen-title">Hand Dodge Arena</h2>
+        <p class="screen-copy">Move your index finger left and right to steer the orb and survive as long as possible.</p>
+        <button id="start-btn" class="action-btn">Start Run</button>
+        <div class="gesture-hint">Controller: index fingertip tracks horizontal movement</div>
+      </div>
+      <div id="over-screen">
+        <h2 class="screen-title">Run Complete</h2>
+        <div id="over-score" class="screen-copy"></div>
+        <div id="over-hi" class="gesture-hint"></div>
+        <button id="restart-btn" class="action-btn">Play Again</button>
+      </div>
+    </section>
+
+    <aside class="panel" id="controller-panel">
+      <div class="panel-head">
+        <h3>Controller Monitor</h3>
+        <div class="live-dot">LIVE</div>
+      </div>
+      <div id="monitor-wrap">
+        <canvas id="monitor" width="360" height="270"></canvas>
+      </div>
+      <div class="metrics-grid">
+        <div class="metric">
+          <div class="metric-label">Tracking</div>
+          <div class="metric-value" id="track-state">No hand</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">FPS</div>
+          <div class="metric-value" id="track-fps">0</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Controller Lag</div>
+          <div class="metric-value" id="ctrl-lag">0 px</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Jitter</div>
+          <div class="metric-value" id="ctrl-jitter">0.0</div>
+        </div>
+      </div>
+      <div class="quality-wrap">
+        <div class="metric-label">Controller Quality</div>
+        <div class="quality-bar"><div class="quality-fill" id="quality-fill"></div></div>
+      </div>
+      <p class="panel-note" id="quality-note">Allow camera access and show one hand with your index finger visible.</p>
+    </aside>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const monitor = document.getElementById('monitor');
+const mtx = monitor.getContext('2d');
+const video = document.getElementById('video');
+
+const scoreEl = document.getElementById('score-el');
+const hiEl = document.getElementById('hi-el');
+const statusEl = document.getElementById('status-el');
+const startScreen = document.getElementById('start-screen');
+const overScreen = document.getElementById('over-screen');
+const startBtn = document.getElementById('start-btn');
+const restartBtn = document.getElementById('restart-btn');
+
+const trackStateEl = document.getElementById('track-state');
+const trackFpsEl = document.getElementById('track-fps');
+const ctrlLagEl = document.getElementById('ctrl-lag');
+const ctrlJitterEl = document.getElementById('ctrl-jitter');
+const qualityFillEl = document.getElementById('quality-fill');
+const qualityNoteEl = document.getElementById('quality-note');
+
+const W = 680;
+const H = 420;
+canvas.width = W;
+canvas.height = H;
+
+let state = 'start';
+let score = 0;
+let hiScore = 0;
+let frame = 0;
+let player = { x: W / 2, y: H - 60, r: 18, tx: W / 2 };
+
+let obstacles = [];
+let particles = [];
+let handDetected = false;
+let cameraReady = false;
+let fingerX = null;
+let fingerY = null;
+let rawFingerX = null;
+let trackingFps = 0;
+let lastResultTime = 0;
+let controllerLagPx = 0;
+let jitterHistory = [];
+let controllerJitter = 0;
+let qualityScore = 0;
+let lastLandmarks = null;
+let raf;
+
+const OBSTACLE_COLORS = ['#4dc0ff', '#ff9966', '#67e7b4', '#ff7892', '#b497ff', '#ffcf75'];
+const HAND_CONNECTIONS = [
+  [0,1],[1,2],[2,3],[3,4],
+  [0,5],[5,6],[6,7],[7,8],
+  [5,9],[9,10],[10,11],[11,12],
+  [9,13],[13,14],[14,15],[15,16],
+  [13,17],[17,18],[18,19],[19,20],
+  [0,17]
+];
+
+function formatScore(v) {
+  return String(v).padStart(4, '0');
+}
+
+function spawnObstacle() {
+  const w = 26 + Math.random() * 44;
+  const h = 16 + Math.random() * 18;
+  const speed = 2.3 + score * 0.012 + Math.random() * 1.2;
+  obstacles.push({
+    x: Math.random() * (W - w - 20) + 10,
+    y: -h,
+    w,
+    h,
+    speed,
+    color: OBSTACLE_COLORS[Math.floor(Math.random() * OBSTACLE_COLORS.length)],
+    r: 7
+  });
+}
+
+function spawnParticles(x, y, color) {
+  for (let i = 0; i < 14; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 1.5 + Math.random() * 3.3;
+    particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 1, color });
+  }
+}
+
+function drawRoundRect(context, x, y, w, h, r, fill) {
+  context.beginPath();
+  context.moveTo(x + r, y);
+  context.lineTo(x + w - r, y);
+  context.quadraticCurveTo(x + w, y, x + w, y + r);
+  context.lineTo(x + w, y + h - r);
+  context.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  context.lineTo(x + r, y + h);
+  context.quadraticCurveTo(x, y + h, x, y + h - r);
+  context.lineTo(x, y + r);
+  context.quadraticCurveTo(x, y, x + r, y);
+  context.closePath();
+  context.fillStyle = fill;
+  context.fill();
+}
+
+function drawStars(t) {
+  if (!drawStars.stars) {
+    drawStars.stars = Array.from({ length: 66 }, () => ({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      r: 0.3 + Math.random() * 1.5,
+      sp: 0.04 + Math.random() * 0.28
+    }));
+  }
+  for (const star of drawStars.stars) {
+    star.y += star.sp;
+    if (star.y > H) {
+      star.y = 0;
+      star.x = Math.random() * W;
+    }
+    ctx.beginPath();
+    ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(236,246,255,${0.2 + Math.sin(t * 0.016 + star.x) * 0.2})`;
+    ctx.fill();
+  }
+}
+
+function drawMonitor() {
+  const mw = monitor.width;
+  const mh = monitor.height;
+  mtx.clearRect(0, 0, mw, mh);
+
+  mtx.fillStyle = '#070d16';
+  mtx.fillRect(0, 0, mw, mh);
+
+  if (cameraReady && video.videoWidth > 0) {
+    mtx.save();
+    mtx.translate(mw, 0);
+    mtx.scale(-1, 1);
+    mtx.drawImage(video, 0, 0, mw, mh);
+    mtx.restore();
+
+    mtx.fillStyle = 'rgba(8, 16, 26, 0.28)';
+    mtx.fillRect(0, 0, mw, mh);
+  } else {
+    mtx.fillStyle = '#90a7bc';
+    mtx.font = '13px IBM Plex Mono';
+    mtx.textAlign = 'center';
+    mtx.fillText('Waiting for camera feed...', mw / 2, mh / 2);
+  }
+
+  if (lastLandmarks) {
+    mtx.lineWidth = 2;
+    mtx.strokeStyle = 'rgba(100,255,216,0.85)';
+    for (const pair of HAND_CONNECTIONS) {
+      const from = lastLandmarks[pair[0]];
+      const to = lastLandmarks[pair[1]];
+      mtx.beginPath();
+      mtx.moveTo((1 - from.x) * mw, from.y * mh);
+      mtx.lineTo((1 - to.x) * mw, to.y * mh);
+      mtx.stroke();
+    }
+
+    for (let i = 0; i < lastLandmarks.length; i++) {
+      const point = lastLandmarks[i];
+      const px = (1 - point.x) * mw;
+      const py = point.y * mh;
+      const isTip = i === 8;
+      mtx.beginPath();
+      mtx.arc(px, py, isTip ? 6 : 3, 0, Math.PI * 2);
+      mtx.fillStyle = isTip ? '#ffc46b' : '#d2f2ff';
+      mtx.fill();
+    }
+  }
+}
+
+function updateControllerMetrics() {
+  trackStateEl.textContent = handDetected ? 'Locked' : 'No hand';
+  trackFpsEl.textContent = trackingFps.toFixed(1);
+  ctrlLagEl.textContent = `${controllerLagPx.toFixed(1)} px`;
+  ctrlJitterEl.textContent = controllerJitter.toFixed(2);
+
+  qualityFillEl.style.width = `${qualityScore.toFixed(0)}%`;
+  if (!cameraReady) {
+    qualityNoteEl.textContent = 'Camera is not active yet. Grant permission to begin tracking.';
+  } else if (!handDetected) {
+    qualityNoteEl.textContent = 'No hand currently detected. Keep your hand centered and well lit.';
+  } else if (qualityScore > 72) {
+    qualityNoteEl.textContent = 'Great control. Tracking is stable and responsive.';
+  } else if (qualityScore > 45) {
+    qualityNoteEl.textContent = 'Tracking works, but stability can improve. Slow down sharp movements.';
+  } else {
+    qualityNoteEl.textContent = 'Tracking quality is low. Improve lighting and keep only one hand in frame.';
+  }
+}
+
+function updateQualityScore() {
+  if (!handDetected) {
+    qualityScore = 0;
+    return;
+  }
+
+  const fpsScore = Math.max(0, Math.min(1, trackingFps / 24));
+  const lagScore = Math.max(0, Math.min(1, 1 - controllerLagPx / 120));
+  const jitterScore = Math.max(0, Math.min(1, 1 - controllerJitter / 0.08));
+  qualityScore = (fpsScore * 0.45 + lagScore * 0.35 + jitterScore * 0.2) * 100;
+}
+
+function gameLoop() {
+  frame++;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#0b1220';
+  ctx.fillRect(0, 0, W, H);
+  drawStars(frame);
+
+  if (state === 'playing') {
+    if (fingerX !== null) {
+      const tx = fingerX * W;
+      player.tx = Math.max(player.r + 6, Math.min(W - player.r - 6, tx));
+    }
+    player.x += (player.tx - player.x) * 0.18;
+
+    const spawnRate = Math.max(26, 56 - score * 0.28);
+    if (frame % Math.round(spawnRate) === 0) {
+      spawnObstacle();
+    }
+
+    obstacles = obstacles.filter(o => {
+      o.y += o.speed;
+      drawRoundRect(ctx, o.x, o.y, o.w, o.h, o.r, o.color);
+
+      const cx = o.x + o.w / 2;
+      const cy = o.y + o.h / 2;
+      const dx = player.x - cx;
+      const dy = player.y - cy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < player.r + Math.min(o.w, o.h) * 0.46) {
+        spawnParticles(player.x, player.y, '#ff6f73');
+        gameOver();
+        return false;
+      }
+      return o.y < H + 42;
+    });
+
+    score++;
+    scoreEl.textContent = `SCORE ${formatScore(score)}`;
+  }
+
+  particles = particles.filter(p => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.08;
+    p.life -= 0.03;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, Math.max(0.01, 4 * p.life), 0, Math.PI * 2);
+    ctx.fillStyle = p.color + Math.round(Math.max(0, p.life) * 255).toString(16).padStart(2, '0');
+    ctx.fill();
+    return p.life > 0;
+  });
+
+  if (state === 'playing' || state === 'over') {
+    const gradient = ctx.createRadialGradient(player.x, player.y, 2, player.x, player.y, player.r);
+    gradient.addColorStop(0, '#d5f4ff');
+    gradient.addColorStop(1, '#4dc0ff');
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.r + 4, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(100,255,216,0.35)';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+  }
+
+  if (handDetected && fingerX !== null && state === 'playing') {
+    const fx = fingerX * W;
+    const fy = fingerY !== null ? fingerY * H : H - 90;
+    ctx.beginPath();
+    ctx.arc(fx, fy, 8, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255, 196, 107, 0.28)';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(fx, fy, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffe0b2';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(fx, fy);
+    ctx.lineTo(player.x, player.y);
+    ctx.strokeStyle = 'rgba(255, 196, 107, 0.22)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  drawMonitor();
+  updateQualityScore();
+  updateControllerMetrics();
+
+  raf = requestAnimationFrame(gameLoop);
+}
+
+function gameOver() {
+  state = 'over';
+  if (score > hiScore) {
+    hiScore = score;
+  }
+  hiEl.textContent = `BEST ${formatScore(hiScore)}`;
+  document.getElementById('over-score').textContent = `Score ${score}`;
+  document.getElementById('over-hi').textContent = `Best ${hiScore}`;
+  overScreen.style.display = 'flex';
+}
+
+function startGame() {
+  state = 'playing';
+  score = 0;
+  frame = 0;
+  player = { x: W / 2, y: H - 60, r: 18, tx: W / 2 };
+  obstacles = [];
+  particles = [];
+  startScreen.style.display = 'none';
+  overScreen.style.display = 'none';
+  scoreEl.textContent = 'SCORE 0000';
+}
+
+function initHands() {
+  const hands = new Hands({
+    locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+  });
+  hands.setOptions({
+    maxNumHands: 1,
+    modelComplexity: 0,
+    minDetectionConfidence: 0.72,
+    minTrackingConfidence: 0.62
+  });
+
+  hands.onResults(results => {
+    const now = performance.now();
+    if (lastResultTime > 0) {
+      const instantFps = 1000 / Math.max(1, now - lastResultTime);
+      trackingFps = trackingFps === 0 ? instantFps : trackingFps * 0.85 + instantFps * 0.15;
+    }
+    lastResultTime = now;
+
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+      handDetected = true;
+      lastLandmarks = results.multiHandLandmarks[0];
+      const tip = lastLandmarks[8];
+
+      rawFingerX = 1 - tip.x;
+      fingerY = tip.y;
+
+      if (fingerX === null) {
+        fingerX = rawFingerX;
+      }
+
+      fingerX += (rawFingerX - fingerX) * 0.26;
+      controllerLagPx = Math.abs(rawFingerX - fingerX) * W;
+
+      jitterHistory.push(rawFingerX);
+      if (jitterHistory.length > 16) {
+        jitterHistory.shift();
+      }
+      if (jitterHistory.length > 1) {
+        let acc = 0;
+        for (let i = 1; i < jitterHistory.length; i++) {
+          acc += Math.abs(jitterHistory[i] - jitterHistory[i - 1]);
+        }
+        controllerJitter = acc / (jitterHistory.length - 1);
+      }
+
+      statusEl.textContent = 'Hand detected. Move your fingertip to steer.';
+    } else {
+      handDetected = false;
+      lastLandmarks = null;
+      rawFingerX = null;
+      fingerX = null;
+      controllerLagPx *= 0.8;
+      controllerJitter *= 0.9;
+      jitterHistory = [];
+      statusEl.textContent = 'Show one hand clearly to the camera.';
+    }
+  });
+
+  navigator.mediaDevices.getUserMedia({
+    video: { width: 640, height: 480, facingMode: 'user' }
+  })
+    .then(stream => {
+      video.srcObject = stream;
+      video.onloadedmetadata = () => {
+        video.play();
+        cameraReady = true;
+        statusEl.textContent = 'Camera ready. Raise your hand to calibrate.';
+
+        const camera = new Camera(video, {
+          onFrame: async () => {
+            await hands.send({ image: video });
+          },
+          width: 640,
+          height: 480
+        });
+        camera.start();
+      };
+    })
+    .catch(() => {
+      statusEl.textContent = 'Camera blocked. Allow access and refresh the page.';
+      qualityNoteEl.textContent = 'Camera permission is required for the hand controller.';
+    });
+}
+
+startBtn.addEventListener('click', startGame);
+restartBtn.addEventListener('click', startGame);
+
+scoreEl.textContent = 'SCORE 0000';
+hiEl.textContent = 'BEST 0000';
+
+gameLoop();
+initHands();
+</script>
